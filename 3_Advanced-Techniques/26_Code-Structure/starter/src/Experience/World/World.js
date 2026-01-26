@@ -21,6 +21,7 @@ export default class World {
   }
 
   update() {
+    console.log(this);
     if (this.fox) this.fox.update();
   }
 }

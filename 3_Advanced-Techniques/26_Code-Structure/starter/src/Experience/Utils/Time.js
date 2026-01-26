@@ -1,5 +1,5 @@
 import EventEmitter from "./EventEmitter.js";
-
+import {Timer} from 'three/addons/misc/Timer.js'
 export default class Time extends EventEmitter {
   constructor() {
     super();
