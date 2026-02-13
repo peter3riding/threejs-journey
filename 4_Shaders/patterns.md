@@ -24,3 +24,10 @@ gl_FragColor = vec4(1.0,1.0,1.0, fresnel);
 ![alt text](image.png)
 
 ---
+
+float remap(float value, float originMin, float originMax, float destinationMin, float destinationMax)
+{
+return destinationMin + (value - originMin) \* (destinationMax - destinationMin) / (originMax - originMin);
+}
+
+---
