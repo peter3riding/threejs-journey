@@ -56,19 +56,115 @@ scene.background = environmentMap;
 scene.environment = environmentMap;
 
 /**
+ * Plane
+ */
+const plane = new THREE.Mesh(
+  new THREE.PlaneGeometry(15, 15, 15),
+  new THREE.MeshStandardMaterial(),
+);
+plane.rotation.y = Math.PI;
+plane.position.y = -5;
+plane.position.z = 5;
+scene.add(plane);
+
+/**
  * Material
  */
+const depthMaterial = new THREE.MeshDepthMaterial({
+  depthPacking: THREE.RGBADepthPacking,
+});
 
 // Textures
 const mapTexture = textureLoader.load("/models/LeePerrySmith/color.jpg");
 mapTexture.colorSpace = THREE.SRGBColorSpace;
 const normalTexture = textureLoader.load("/models/LeePerrySmith/normal.jpg");
+const customUniforms = {
+  uTime: { value: 0.0 },
+};
 
-// Material
 const material = new THREE.MeshStandardMaterial({
   map: mapTexture,
   normalMap: normalTexture,
 });
+
+material.onBeforeCompile = (shader: any) => {
+  shader.uniforms.uTime = customUniforms.uTime;
+
+  shader.vertexShader = shader.vertexShader.replace(
+    "#include <common>",
+    `
+    #include <common>
+    uniform float uTime;
+
+    mat2 get2dRotateMatrix(float _angle)
+    {
+        return mat2(
+            cos(_angle), -sin(_angle),
+            sin(_angle),  cos(_angle)
+        );
+    }
+    `,
+  );
+
+  // Rotate normals
+  shader.vertexShader = shader.vertexShader.replace(
+    "#include <beginnormal_vertex>",
+    `
+    #include <beginnormal_vertex>
+    
+    float angle = (position.y + uTime) * 0.9;
+    mat2 rotateMatrix = get2dRotateMatrix(angle);
+
+    objectNormal.xy = rotateMatrix * objectNormal.xy;
+
+    `,
+  );
+
+  // Rotate XZ coordinates
+  shader.vertexShader = shader.vertexShader.replace(
+    "#include <begin_vertex>",
+    `
+    #include <begin_vertex>
+
+    transformed.xz = rotateMatrix * transformed.xz;
+    `,
+  );
+};
+
+depthMaterial.onBeforeCompile = (shader: any) => {
+  shader.uniforms.uTime = customUniforms.uTime;
+
+  shader.vertexShader = shader.vertexShader.replace(
+    "#include <common>",
+    `
+    #include <common>
+    uniform float uTime;
+
+    mat2 get2dRotateMatrix(float _angle)
+    {
+        return mat2(
+            cos(_angle), -sin(_angle),
+            sin(_angle),  cos(_angle)
+        );
+    }
+    `,
+  );
+
+  // Rotate XZ coordinates
+  shader.vertexShader = shader.vertexShader.replace(
+    "#include <begin_vertex>",
+    `
+    #include <begin_vertex>
+
+
+
+    float angle = (position.y + uTime) * 0.9;
+    mat2 rotateMatrix = get2dRotateMatrix(angle);
+
+    transformed.xz = rotateMatrix * transformed.xz;
+    `,
+  );
+};
 
 /**
  * Models
@@ -76,10 +172,11 @@ const material = new THREE.MeshStandardMaterial({
 gltfLoader.load("/models/LeePerrySmith/LeePerrySmith.glb", (gltf) => {
   // Model
   const mesh = gltf.scene.children[0];
+  mesh.customDepthMaterial = depthMaterial;
 
   if (mesh instanceof THREE.Mesh) {
     mesh.rotation.y = Math.PI * 0.5;
-    mesh.material = material; // ✅ Now TypeScript is happy
+    mesh.material = material; //
   }
 
   scene.add(mesh);
@@ -131,13 +228,14 @@ window.addEventListener("resize", (): void => {
  * Camera
  */
 // Base camera
+// Base camera
 const camera = new THREE.PerspectiveCamera(
-  25,
+  75,
   sizes.width / sizes.height,
   0.1,
   100,
 );
-camera.position.set(1.5, 0, 6);
+camera.position.set(4, 1, -4);
 scene.add(camera);
 
 // Controls
@@ -161,9 +259,16 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 /**
  * Animate
  */
+
+const clock = new THREE.Clock();
 const tick = (): void => {
+  let elapsedTime = clock.getElapsedTime();
+
   // Update controls
   controls.update();
+
+  // Animation
+  customUniforms.uTime.value = elapsedTime;
 
   // Render
   renderer.render(scene, camera);
