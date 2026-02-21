@@ -2,6 +2,8 @@ import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import GUI from "lil-gui";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import smokeVertexShader from "./shaders/coffee-smoke/vertex.glsl";
+import smokeFragmentShader from "./shaders/coffee-smoke/fragment.glsl";
 
 /**
  * Base
@@ -20,10 +22,38 @@ const scene = new THREE.Scene();
 const textureLoader = new THREE.TextureLoader();
 const gltfLoader = new GLTFLoader();
 
+const perlinTexture = textureLoader.load("/perlin.png");
+perlinTexture.wrapT = THREE.RepeatWrapping;
+perlinTexture.wrapS = THREE.RepeatWrapping;
+
+/**
+ * Plane
+ */
+const planeGeometry = new THREE.PlaneGeometry(1, 1, 16, 64);
+planeGeometry.translate(0, 0.5, 0);
+planeGeometry.scale(1.5, 5, 2.5);
+const planeMaterial = new THREE.ShaderMaterial({
+  vertexShader: smokeVertexShader,
+  fragmentShader: smokeFragmentShader,
+  side: THREE.DoubleSide,
+  transparent: true,
+  // wireframe: true,
+  depthWrite: false,
+  uniforms: {
+    uPerlinTexture: new THREE.Uniform(perlinTexture),
+    uTime: new THREE.Uniform(0),
+  },
+});
+
+const plane = new THREE.Mesh(planeGeometry, planeMaterial);
+
+plane.position.y = 1.83;
+
+scene.add(plane);
+
 /**
  * Sizes
  */
-
 interface Sizes {
   width: number;
   height: number;
@@ -94,9 +124,16 @@ gltfLoader.load("./bakedModel.glb", (gltf) => {
 /**
  * Animate
  */
+
+const clock = new THREE.Clock();
 const tick = (): void => {
+  const elapsedTime = clock.getElapsedTime();
+
   // Update controls
   controls.update();
+
+  // Animation
+  plane.material.uniforms.uTime.value = elapsedTime;
 
   // Render
   renderer.render(scene, camera);
