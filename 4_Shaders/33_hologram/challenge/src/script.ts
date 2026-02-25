@@ -3,6 +3,8 @@ import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import GUI from "lil-gui";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import type { GLTF } from "three/examples/jsm/loaders/GLTFLoader.js";
+import hologramVertexShader from "./shaders/holographic/vertex.glsl";
+import hologramFragmentShader from "./shaders/holographic/fragment.glsl";
 
 /**
  * Base
@@ -90,10 +92,26 @@ gui.addColor(rendererParameters, "clearColor").onChange(() => {
   }
 });
 
+const materialParameters = { color: "#70c1ff" };
+gui
+  .addColor(materialParameters, "color")
+  .onChange(() => material.uniforms.uColor.value.set(materialParameters.color));
+
 /**
  * Material
  */
-const material = new THREE.MeshBasicMaterial();
+const material = new THREE.ShaderMaterial({
+  vertexShader: hologramVertexShader,
+  fragmentShader: hologramFragmentShader,
+  blending: THREE.AdditiveBlending,
+  side: THREE.DoubleSide,
+  depthWrite: false,
+  transparent: true,
+  uniforms: {
+    uTime: new THREE.Uniform(0),
+    uColor: new THREE.Uniform(new THREE.Color(materialParameters.color)),
+  },
+});
 
 /**
  * Objects
@@ -133,6 +151,9 @@ const clock = new THREE.Clock();
 
 const tick = () => {
   const elapsedTime = clock.getElapsedTime();
+
+  // Hologram animation
+  material.uniforms.uTime.value = elapsedTime;
 
   // Rotate objects
   if (suzanne) {
