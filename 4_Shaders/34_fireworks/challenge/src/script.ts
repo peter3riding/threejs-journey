@@ -115,6 +115,7 @@ const createParticles = (
   // Geometry
   const positionsArray = new Float32Array(count * 3);
   const sizesArray = new Float32Array(count);
+  const timeMultipliersArray = new Float32Array(count);
 
   for (let i = 0; i < count; i++) {
     const i3 = i * 3;
@@ -132,6 +133,8 @@ const createParticles = (
     positionsArray[i3 + 2] = pos.z;
 
     sizesArray[i] = Math.random();
+
+    timeMultipliersArray[i] = 1 + Math.random();
   }
 
   const geometry = new THREE.BufferGeometry();
@@ -143,6 +146,10 @@ const createParticles = (
     "aSize",
     new THREE.Float32BufferAttribute(sizesArray, 1),
   );
+  geometry.setAttribute(
+    "aRandom",
+    new THREE.Float32BufferAttribute(timeMultipliersArray, 1),
+  );
 
   // Material
   texture.flipY = false;
@@ -152,6 +159,7 @@ const createParticles = (
       uResolution: new THREE.Uniform(sizes.resolution),
       uTexture: new THREE.Uniform(texture),
       uColor: new THREE.Uniform(color),
+      uProgress: new THREE.Uniform(0),
     },
     vertexShader: particleVertexShader,
     fragmentShader: particleFragmentShader,
@@ -165,21 +173,30 @@ const createParticles = (
   particles.position.copy(position);
   scene.add(particles);
 
-  return particles;
+  // Destroy
+  const destroy = () => {
+    scene.remove(particles);
+    geometry.dispose();
+    material.dispose();
+  };
+
+  // Animate
+  gsap.to(material.uniforms.uProgress, {
+    value: 1,
+    duration: 3,
+    ease: "linear",
+    onComplete: destroy,
+  });
 };
 
 const createRandomParticles = () => {
   createParticles(
-    Math.round(200 + Math.random() * 600),
-    new THREE.Vector3(
-      (Math.random() - 0.5) * 6,
-      Math.random() * 3,
-      (Math.random() - 0.5) * 6,
-    ),
-    0.1 + Math.random() * 0.2,
+    100,
+    new THREE.Vector3(Math.random(), Math.random(), Math.random()),
+    0.5,
     particleTextures[Math.floor(Math.random() * particleTextures.length)],
     new THREE.Color().setHSL(Math.random(), 1, 0.7),
-    0.8 + Math.random() * 1.5,
+    1,
   );
 };
 
