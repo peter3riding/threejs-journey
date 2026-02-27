@@ -2,8 +2,8 @@ import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import GUI from "lil-gui";
 import gsap from "gsap";
-import fireworksVertexShader from "./shaders/fireworks/vertex.glsl";
-import fireworksFragmentShader from "./shaders/fireworks/fragment.glsl";
+import particleVertexShader from "./shaders/particles/vertex.glsl";
+import particleFragmentShader from "./shaders/particles/fragment.glsl";
 
 /**
  * Base
@@ -24,44 +24,29 @@ const textureLoader = new THREE.TextureLoader();
 /**
  * Sizes
  */
-
 interface Sizes {
   width: number;
   height: number;
-  resolution?: THREE.Vector2;
   pixelRatio: number;
+  resolution: THREE.Vector2;
 }
 
 const sizes: Sizes = {
   width: window.innerWidth,
   height: window.innerHeight,
   pixelRatio: Math.min(window.devicePixelRatio, 2),
+  resolution: new THREE.Vector2(),
 };
-sizes.resolution = new THREE.Vector2(sizes.width, sizes.height);
 
-window.addEventListener("resize", (): void => {
-  // Update sizes
-  sizes.width = window.innerWidth;
-  sizes.height = window.innerHeight;
-  sizes.pixelRatio = Math.min(window.devicePixelRatio, 2);
-  sizes.resolution?.set(
-    sizes.width * sizes.pixelRatio,
-    sizes.height * sizes.pixelRatio,
-  );
-
-  // Update camera
-  camera.aspect = sizes.width / sizes.height;
-  camera.updateProjectionMatrix();
-
-  // Update renderer
-  renderer.setSize(sizes.width, sizes.height);
-  renderer.setPixelRatio(sizes.pixelRatio);
-});
+// Set initial resolution
+sizes.resolution.set(
+  sizes.width * sizes.pixelRatio,
+  sizes.height * sizes.pixelRatio,
+);
 
 /**
  * Camera
  */
-// Base camera
 const camera = new THREE.PerspectiveCamera(
   25,
   sizes.width / sizes.height,
@@ -86,11 +71,30 @@ renderer.setSize(sizes.width, sizes.height);
 renderer.setPixelRatio(sizes.pixelRatio);
 
 /**
- * Fireworks
+ * Resize listener
+ */
+window.addEventListener("resize", (): void => {
+  sizes.width = window.innerWidth;
+  sizes.height = window.innerHeight;
+  sizes.pixelRatio = Math.min(window.devicePixelRatio, 2);
+  sizes.resolution.set(
+    sizes.width * sizes.pixelRatio,
+    sizes.height * sizes.pixelRatio,
+  );
+
+  camera.aspect = sizes.width / sizes.height;
+  camera.updateProjectionMatrix();
+
+  renderer.setSize(sizes.width, sizes.height);
+  renderer.setPixelRatio(sizes.pixelRatio);
+});
+
+/**
+ * Particles
  */
 
-// Use loadAsync so everything is ready before creating points
-const textures = [
+// Textures
+const particleTextures = [
   textureLoader.load("./particles/1.png"),
   textureLoader.load("./particles/2.png"),
   textureLoader.load("./particles/3.png"),
@@ -98,120 +102,96 @@ const textures = [
   textureLoader.load("./particles/5.png"),
   textureLoader.load("./particles/6.png"),
   textureLoader.load("./particles/7.png"),
-  textureLoader.load("./particles/8.png"),
 ];
 
-function createFirework(
+const createParticles = (
   count: number,
   position: THREE.Vector3,
-  size: number,
+  baseSize: number,
   texture: THREE.Texture,
-  radius: number,
   color: THREE.Color,
-): void {
-  const positions = new Float32Array(count * 3);
+  radius: number = 1,
+) => {
+  // Geometry
+  const positionsArray = new Float32Array(count * 3);
   const sizesArray = new Float32Array(count);
-  const timeMultiplierArray = new Float32Array(count);
 
   for (let i = 0; i < count; i++) {
     const i3 = i * 3;
 
+    // Sphere distribution (change this block for plane, box, etc.)
     const spherical = new THREE.Spherical(
       radius * (0.75 + Math.random() * 0.25),
       Math.random() * Math.PI,
       Math.random() * Math.PI * 2,
     );
-    const position = new THREE.Vector3();
-    position.setFromSpherical(spherical);
+    const pos = new THREE.Vector3().setFromSpherical(spherical);
 
-    positions[i3 + 0] = position.x;
-    positions[i3 + 1] = position.y;
-    positions[i3 + 2] = position.z;
+    positionsArray[i3] = pos.x;
+    positionsArray[i3 + 1] = pos.y;
+    positionsArray[i3 + 2] = pos.z;
 
     sizesArray[i] = Math.random();
-
-    timeMultiplierArray[i] = 1 + Math.random();
   }
 
-  const pointGeometry = new THREE.BufferGeometry();
-  pointGeometry.setAttribute(
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute(
     "position",
-    new THREE.BufferAttribute(positions, 3),
+    new THREE.Float32BufferAttribute(positionsArray, 3),
   );
-  pointGeometry.setAttribute("aSize", new THREE.BufferAttribute(sizesArray, 1));
-  pointGeometry.setAttribute(
-    "aTimeMultiplyer",
-    new THREE.BufferAttribute(timeMultiplierArray, 1),
+  geometry.setAttribute(
+    "aSize",
+    new THREE.Float32BufferAttribute(sizesArray, 1),
   );
 
   // Material
   texture.flipY = false;
-  const pointsMaterial = new THREE.ShaderMaterial({
-    vertexShader: fireworksVertexShader,
-    fragmentShader: fireworksFragmentShader,
+  const material = new THREE.ShaderMaterial({
     uniforms: {
-      uSize: new THREE.Uniform(size),
+      uSize: new THREE.Uniform(baseSize),
       uResolution: new THREE.Uniform(sizes.resolution),
       uTexture: new THREE.Uniform(texture),
       uColor: new THREE.Uniform(color),
-      uProgress: new THREE.Uniform(0),
     },
+    vertexShader: particleVertexShader,
+    fragmentShader: particleFragmentShader,
     transparent: true,
     depthWrite: false,
     blending: THREE.AdditiveBlending,
-    toneMapped: false,
   });
 
-  const firework = new THREE.Points(pointGeometry, pointsMaterial);
-  scene.add(firework);
+  // Points
+  const particles = new THREE.Points(geometry, material);
+  particles.position.copy(position);
+  scene.add(particles);
 
-  // Destroy
-  const destroy = () => {
-    scene.remove(firework);
-    pointGeometry.dispose();
-    pointsMaterial.dispose();
-  };
+  return particles;
+};
 
-  // Animate
-  gsap.to(pointsMaterial.uniforms.uProgress, {
-    value: 1,
-    duration: 11,
-    ease: "linear",
-    onComplete: destroy,
-  });
-}
-
-createFirework(
-  100,
-  new THREE.Vector3(0, 0, 0),
-  0.5,
-  textures[7],
-  1,
-  new THREE.Color("#8affff"),
-);
-
-window.addEventListener("click", () => {
-  createFirework(
-    100,
-    new THREE.Vector3(0, 0, 0),
-    0.5,
-    textures[7],
-    1,
-    new THREE.Color("#8affff"),
+const createRandomParticles = () => {
+  createParticles(
+    Math.round(200 + Math.random() * 600),
+    new THREE.Vector3(
+      (Math.random() - 0.5) * 6,
+      Math.random() * 3,
+      (Math.random() - 0.5) * 6,
+    ),
+    0.1 + Math.random() * 0.2,
+    particleTextures[Math.floor(Math.random() * particleTextures.length)],
+    new THREE.Color().setHSL(Math.random(), 1, 0.7),
+    0.8 + Math.random() * 1.5,
   );
-});
+};
+
+createRandomParticles();
+window.addEventListener("click", createRandomParticles);
 
 /**
  * Animate
  */
 const tick = (): void => {
-  // Update controls
   controls.update();
-
-  // Render
   renderer.render(scene, camera);
-
-  // Call tick again on the next frame
   window.requestAnimationFrame(tick);
 };
 
