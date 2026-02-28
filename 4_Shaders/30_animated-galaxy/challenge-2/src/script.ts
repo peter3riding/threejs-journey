@@ -1,6 +1,8 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import GUI from "lil-gui";
+import galaxyVertexShader from "./shaders/particles/vertex.glsl";
+import galaxyFragmentShader from "./shaders/particles/fragment.glsl";
 
 /**
  * Base
@@ -13,6 +15,48 @@ const canvas = document.querySelector("canvas.webgl") as HTMLCanvasElement;
 
 // Scene
 const scene = new THREE.Scene();
+
+/**
+ * Sizes
+ */
+interface Sizes {
+  width: number;
+  height: number;
+  pixelRatio: number;
+  resolution: THREE.Vector2;
+}
+
+const sizes: Sizes = {
+  width: window.innerWidth,
+  height: window.innerHeight,
+  pixelRatio: Math.min(window.devicePixelRatio, 2),
+  resolution: new THREE.Vector2(), // ← add this line
+};
+
+sizes.resolution.set(
+  sizes.width * sizes.pixelRatio,
+  sizes.height * sizes.pixelRatio,
+);
+
+window.addEventListener("resize", () => {
+  // Update sizes
+  sizes.width = window.innerWidth;
+  sizes.height = window.innerHeight;
+  sizes.pixelRatio = Math.min(window.devicePixelRatio, 2);
+  sizes.resolution.set(
+    // ← can remove the ? now
+    sizes.width * sizes.pixelRatio,
+    sizes.height * sizes.pixelRatio,
+  );
+
+  // Update camera
+  camera.aspect = sizes.width / sizes.height;
+  camera.updateProjectionMatrix();
+
+  // Update renderer
+  renderer.setSize(sizes.width, sizes.height);
+  renderer.setPixelRatio(sizes.pixelRatio);
+});
 
 /**
  * Galaxy
@@ -108,9 +152,17 @@ const generateGalaxy = () => {
    * Material
    */
   material = new THREE.ShaderMaterial({
+    vertexShader: galaxyVertexShader,
+    fragmentShader: galaxyFragmentShader,
+    transparent: true,
     depthWrite: false,
     blending: THREE.AdditiveBlending,
     vertexColors: true,
+    uniforms: {
+      uSize: new THREE.Uniform(0.1),
+      uResolution: new THREE.Uniform(sizes.resolution),
+      uTime: new THREE.Uniform(0),
+    },
   });
 
   /**
@@ -168,28 +220,6 @@ gui.addColor(parameters, "insideColor").onFinishChange(generateGalaxy);
 gui.addColor(parameters, "outsideColor").onFinishChange(generateGalaxy);
 
 /**
- * Sizes
- */
-const sizes = {
-  width: window.innerWidth,
-  height: window.innerHeight,
-};
-
-window.addEventListener("resize", () => {
-  // Update sizes
-  sizes.width = window.innerWidth;
-  sizes.height = window.innerHeight;
-
-  // Update camera
-  camera.aspect = sizes.width / sizes.height;
-  camera.updateProjectionMatrix();
-
-  // Update renderer
-  renderer.setSize(sizes.width, sizes.height);
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-});
-
-/**
  * Camera
  */
 // Base camera
@@ -214,8 +244,9 @@ controls.enableDamping = true;
 const renderer = new THREE.WebGLRenderer({
   canvas: canvas,
 });
+// Initial renderer setup
 renderer.setSize(sizes.width, sizes.height);
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setPixelRatio(sizes.pixelRatio);
 
 /**
  * Animate
@@ -224,6 +255,11 @@ const clock = new THREE.Clock();
 
 const tick = () => {
   const elapsedTime = clock.getElapsedTime();
+
+  // Animation
+  if (material) {
+    material.uniforms.uTime.value = elapsedTime;
+  }
 
   // Update controls
   controls.update();
