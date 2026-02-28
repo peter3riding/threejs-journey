@@ -1,12 +1,18 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import GUI from "lil-gui";
+import seaVertexShader from "./shaders/shader-name/vertex.glsl";
+import seaFragmentShader from "./shaders/shader-name/fragment.glsl";
 
 /**
  * Base
  */
 // Debug
 const gui = new GUI({ width: 340 });
+const debugObject = {
+  depthColor: "#186691",
+  surfaceColor: "#9bd8ff",
+};
 
 // Canvas
 const canvas = document.querySelector<HTMLCanvasElement>("canvas.webgl");
@@ -25,12 +31,63 @@ const textureLoader = new THREE.TextureLoader();
 const waterGeometry = new THREE.PlaneGeometry(2, 2, 128, 128);
 
 // Material
-const waterMaterial = new THREE.MeshBasicMaterial();
+const waterMaterial = new THREE.ShaderMaterial({
+  vertexShader: seaVertexShader,
+  fragmentShader: seaFragmentShader,
+  uniforms: {
+    uFrequency: new THREE.Uniform(3),
+    uStrength: new THREE.Uniform(0.3),
+    uTime: new THREE.Uniform(0),
+    uSpeed: new THREE.Uniform(1),
+    uDepthColor: new THREE.Uniform(new THREE.Color(debugObject.depthColor)),
+    uSurfaceColor: new THREE.Uniform(new THREE.Color(debugObject.surfaceColor)),
+    uSmallWavesElevation: new THREE.Uniform(0.1),
+    uColorOffset: { value: 0.08 },
+    uColorMultiplier: { value: 2.5 },
+  },
+});
 
 // Mesh
 const water = new THREE.Mesh(waterGeometry, waterMaterial);
 water.rotation.x = -Math.PI * 0.5;
 scene.add(water);
+
+gui
+  .add(waterMaterial.uniforms.uFrequency, "value")
+  .min(0)
+  .max(10)
+  .step(0.1)
+  .name("frequency");
+gui
+  .add(waterMaterial.uniforms.uStrength, "value")
+  .min(0)
+  .max(1)
+  .step(0.001)
+  .name("stength");
+gui
+  .add(waterMaterial.uniforms.uSpeed, "value")
+  .min(0)
+  .max(3)
+  .step(0.001)
+  .name("speed");
+gui
+  .add(waterMaterial.uniforms.uSmallWavesElevation, "value")
+  .min(0)
+  .max(1)
+  .step(0.0001)
+  .name("smallWavesElevation");
+gui
+  .add(waterMaterial.uniforms.uColorOffset, "value")
+  .min(0)
+  .max(1)
+  .step(0.001)
+  .name("uColorOffset");
+gui
+  .add(waterMaterial.uniforms.uColorMultiplier, "value")
+  .min(0)
+  .max(10)
+  .step(0.001)
+  .name("uColorMultiplier");
 
 /**
  * Sizes
@@ -59,7 +116,8 @@ window.addEventListener("resize", (): void => {
   renderer.setSize(sizes.width, sizes.height);
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 });
-
+// const axesHelper = new THREE.AxesHelper(5);
+// scene.add(axesHelper);
 /**
  * Camera
  */
@@ -90,7 +148,13 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 /**
  * Animate
  */
+const clock = new THREE.Clock();
 const tick = (): void => {
+  let elapsedTime = clock.getElapsedTime();
+
+  // Animation
+  waterMaterial.uniforms.uTime.value = elapsedTime;
+
   // Update controls
   controls.update();
 
