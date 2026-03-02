@@ -152,6 +152,7 @@ const createParticles = (
       uResolution: new THREE.Uniform(sizes.resolution),
       uTexture: new THREE.Uniform(texture),
       uColor: new THREE.Uniform(color),
+      uProgress: new THREE.Uniform(0),
     },
     vertexShader: particleVertexShader,
     fragmentShader: particleFragmentShader,
@@ -161,25 +162,39 @@ const createParticles = (
   });
 
   // Points
-  const particles = new THREE.Points(geometry, material);
-  particles.position.copy(position);
-  scene.add(particles);
+  const firework = new THREE.Points(geometry, material);
+  firework.position.copy(position);
+  scene.add(firework);
 
-  return particles;
+  // Destroy
+  const destroy = () => {
+    scene.remove(firework);
+    geometry.dispose();
+    material.dispose();
+  };
+
+  // Animate
+  gsap.to(material.uniforms.uProgress, {
+    value: 1,
+    duration: 3,
+    ease: "linear",
+    onComplete: destroy,
+  });
 };
 
 const createRandomParticles = () => {
   createParticles(
     Math.round(200 + Math.random() * 600),
-    new THREE.Vector3(
-      (Math.random() - 0.5) * 6,
-      Math.random() * 3,
-      (Math.random() - 0.5) * 6,
-    ),
+    // new THREE.Vector3(
+    //   (Math.random() - 0.5) * 6,
+    //   Math.random() * 3,
+    //   (Math.random() - 0.5) * 6,
+    // ),
+    new THREE.Vector3(),
     0.1 + Math.random() * 0.2,
     particleTextures[Math.floor(Math.random() * particleTextures.length)],
     new THREE.Color().setHSL(Math.random(), 1, 0.7),
-    0.8 + Math.random() * 1.5,
+    1,
   );
 };
 
@@ -191,6 +206,7 @@ window.addEventListener("click", createRandomParticles);
  */
 const tick = (): void => {
   controls.update();
+
   renderer.render(scene, camera);
   window.requestAnimationFrame(tick);
 };
