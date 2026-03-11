@@ -22,11 +22,12 @@ void main()
     // Alpha
     float edgeAlpha = dot(viewDirection, normal);
     edgeAlpha = smoothstep(0.0, 0.5, edgeAlpha);
-    
+
     float dayAlpha = smoothstep(-0.5, 0.0, sunOrientation);
 
     float alpha = edgeAlpha * dayAlpha;
-  
+
+   
 
     // Final color
     gl_FragColor = vec4(color, alpha);

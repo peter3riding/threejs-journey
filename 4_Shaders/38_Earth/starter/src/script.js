@@ -83,10 +83,10 @@ scene.add(earth);
 
 // Atmosphere
 const atmosphereMaterial = new THREE.ShaderMaterial({
-  vertexShader: atmosphereVertexShader,
-  fragmentShader: atmosphereFragmentShader,
   side: THREE.BackSide,
   transparent: true,
+  vertexShader: atmosphereVertexShader,
+  fragmentShader: atmosphereFragmentShader,
   uniforms: {
     uSunDirection: new THREE.Uniform(new THREE.Vector3(0, 0, 1)),
     uAtmosphereDayColor: new THREE.Uniform(
@@ -109,16 +109,6 @@ scene.add(atmosphere);
 const sunSpherical = new THREE.Spherical(1, Math.PI * 0.5, 0.5);
 const sunDirection = new THREE.Vector3();
 
-const updateSun = () => {
-  sunDirection.setFromSpherical(sunSpherical);
-
-  debugSun.position.copy(sunDirection).multiplyScalar(5);
-
-  // Uniforms
-  earthMaterial.uniforms.uSunDirection.value.copy(sunDirection);
-  atmosphereMaterial.uniforms.uSunDirection.value.copy(sunDirection);
-};
-
 // Debug
 const debugSun = new THREE.Mesh(
   new THREE.IcosahedronGeometry(0.1, 2),
@@ -126,9 +116,22 @@ const debugSun = new THREE.Mesh(
 );
 scene.add(debugSun);
 
+// Update
+const updateSun = () => {
+  // Sun direction
+  sunDirection.setFromSpherical(sunSpherical);
+
+  // Debug
+  debugSun.position.copy(sunDirection).multiplyScalar(5);
+
+  // Uniforms
+  earthMaterial.uniforms.uSunDirection.value.copy(sunDirection);
+  atmosphereMaterial.uniforms.uSunDirection.value.copy(sunDirection);
+};
+
 updateSun();
 
-// Tweaks;
+// Tweaks
 gui.add(sunSpherical, "phi").min(0).max(Math.PI).onChange(updateSun);
 
 gui.add(sunSpherical, "theta").min(-Math.PI).max(Math.PI).onChange(updateSun);
@@ -186,7 +189,6 @@ const renderer = new THREE.WebGLRenderer({
 renderer.setSize(sizes.width, sizes.height);
 renderer.setPixelRatio(sizes.pixelRatio);
 renderer.setClearColor("#000011");
-console.log(renderer.capabilities.getMaxAnisotropy());
 
 /**
  * Animate
