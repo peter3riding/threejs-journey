@@ -15,17 +15,19 @@ void main()
     float sunOrientation = dot(uSunDirection, normal);
 
     // Atmosphere
-       float atmosphereDayMix = smoothstep(- 0.5, 1.0, sunOrientation);
-    vec3 atmosphereColor = mix(uAtmosphereTwilightColor, uAtmosphereDayColor, atmosphereDayMix);
-   color += atmosphereColor;
+    float atmosphereDayMix = smoothstep(-0.5, 0.0, sunOrientation);
+    vec3 atmosphereColorMix = mix(uAtmosphereTwilightColor,uAtmosphereDayColor,  atmosphereDayMix);
 
-   float edgeAlpha = dot(viewDirection, normal);
-   edgeAlpha = smoothstep(0.0, 0.5, edgeAlpha);
+    color += atmosphereColorMix;
+    // Edge mix
+    float edgeMix = dot(viewDirection, normal);
+    edgeMix = smoothstep(-0.0, 0.5,edgeMix);
 
-   float dayAlpha = smoothstep(-0.5, 0.0, sunOrientation);
+    float dayMix = smoothstep(-0.5, 0.0, sunOrientation);
+    float alpha = dayMix * edgeMix;
 
-   float alpha = edgeAlpha * dayAlpha;
-    
+
+    // color = atmosphereColorMix;
     // Final color
     gl_FragColor = vec4(color, alpha);
     #include <tonemapping_fragment>
