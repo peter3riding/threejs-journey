@@ -11,5 +11,3 @@ void main()
     csm_Roughness = 1.0 - colorMix;
 }
 
-//csm_FragColor.rgb
-//csm_DiffuseColor.rgb
