@@ -7,6 +7,7 @@ import particlesVertexShader from "./shaders/particles/vertex.glsl";
 import particlesFragmentShader from "./shaders/particles/fragment.glsl";
 import { GPUComputationRenderer } from "three/addons/misc/GPUComputationRenderer.js";
 import gpgpuParticlesShader from "./shaders/gpgpu/particles.glsl";
+import { uniform } from "three/src/nodes/core/UniformNode.js";
 
 /**
  * Base
@@ -125,7 +126,7 @@ for (let i = 0; i < baseGeometry.count; i++) {
     baseGeometry.instance.attributes.position.array[i3 + 1];
   baseParticlesTexture.image.data[i4 + 2] =
     baseGeometry.instance.attributes.position.array[i3 + 2];
-  baseParticlesTexture.image.data[i4 + 3] = 0;
+  baseParticlesTexture.image.data[i4 + 3] = Math.random();
 }
 
 // Particles variable
@@ -137,6 +138,13 @@ gpgpu.particlesVariable = gpgpu.computation.addVariable(
 gpgpu.computation.setVariableDependencies(gpgpu.particlesVariable, [
   gpgpu.particlesVariable,
 ]);
+
+//Uniforms
+gpgpu.particlesVariable.material.uniforms.uBaseTexture = new THREE.Uniform(
+  baseParticlesTexture,
+);
+gpgpu.particlesVariable.material.uniforms.uTime = new THREE.Uniform(0);
+
 // Init
 gpgpu.computation.init();
 
@@ -191,8 +199,6 @@ particles.geometry.setAttribute(
   new THREE.BufferAttribute(sizesArray, 1),
 );
 
-console.log(baseGeometry.instance.attributes.color);
-
 // Material
 particles.material = new THREE.ShaderMaterial({
   vertexShader: particlesVertexShader,
@@ -241,6 +247,7 @@ const tick = () => {
   controls.update();
 
   // GPGPU Update
+  gpgpu.particlesVariable.material.uniforms.uTime.value = elapsedTime;
   gpgpu.computation.compute();
   particles.material.uniforms.uParticlesTexture.value =
     gpgpu.computation.getCurrentRenderTarget(gpgpu.particlesVariable).texture;
