@@ -4,8 +4,6 @@ import { RGBELoader } from "three/addons/loaders/RGBELoader.js";
 import GUI from "lil-gui";
 import { SUBTRACTION, Evaluator, Brush } from "three-bvh-csg";
 import CustomShaderMaterial from "three-custom-shader-material/vanilla";
-import terrainVertexShader from "./shaders/terrain/vertex.glsl";
-import terrainFragmentShader from "./shaders/terrain/fragment.glsl";
 
 /**
  * Base
@@ -38,60 +36,14 @@ rgbeLoader.load("/spruit_sunrise.hdr", (environmentMap) => {
  * Terrain
  */
 // Material
-
-debugObject.colorWaterDeep = "#002b3d";
-debugObject.colorWaterSurface = "#66a8ff";
-debugObject.colorSand = "#ffe894";
-debugObject.colorGrass = "#85d534";
-debugObject.colorSnow = "#ffffff";
-debugObject.colorRock = "#bfbd8d";
-
-const uniforms = {
-  uPositionFrequency: new THREE.Uniform(0.2),
-  uStrength: new THREE.Uniform(2.0),
-  uWarpFrequency: new THREE.Uniform(5),
-  uWarpStrength: new THREE.Uniform(0.5),
-  uColorWaterDeep: new THREE.Uniform(
-    new THREE.Color(debugObject.colorWaterDeep),
-  ),
-  uColorWaterSurface: new THREE.Uniform(
-    new THREE.Color(debugObject.colorWaterSurface),
-  ),
-  uColorSand: new THREE.Uniform(new THREE.Color(debugObject.colorSand)),
-  uColorGrass: new THREE.Uniform(new THREE.Color(debugObject.colorGrass)),
-  uColorSnow: new THREE.Uniform(new THREE.Color(debugObject.colorSnow)),
-  uColorRock: new THREE.Uniform(new THREE.Color(debugObject.colorRock)),
-};
-
-gui
-  .add(uniforms.uPositionFrequency, "value", 0, 1, 0.001)
-  .name("uPositionFrequency");
-gui.add(uniforms.uStrength, "value", 0, 10, 0.001).name("uStrength");
-gui.add(uniforms.uWarpFrequency, "value", 0, 10, 0.001).name("uWarpFrequency");
-gui.add(uniforms.uWarpStrength, "value", 0, 1, 0.001).name("uWarpStrength");
-
 const material = new CustomShaderMaterial({
   // CSM
   baseMaterial: THREE.MeshStandardMaterial,
-  vertexShader: terrainVertexShader,
-  fragmentShader: terrainFragmentShader,
 
   // MeshStandardMaterial
   metalness: 0,
   roughness: 0.5,
   color: "#85d534",
-  uniforms: uniforms,
-});
-
-const depthMaterial = new CustomShaderMaterial({
-  // CSM
-  baseMaterial: THREE.MeshDepthMaterial,
-  vertexShader: terrainVertexShader,
-
-  uniforms: uniforms,
-
-  // MeshDepthMaterial
-  depthPacking: THREE.RGBADepthPacking,
 });
 
 // Geometry
@@ -100,7 +52,6 @@ geometry.rotateX(-Math.PI * 0.5);
 
 // Mesh
 const terrain = new THREE.Mesh(geometry, material);
-terrain.customDepthMaterial = depthMaterial;
 terrain.receiveShadow = true;
 terrain.castShadow = true;
 scene.add(terrain);
