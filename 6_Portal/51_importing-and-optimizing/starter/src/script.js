@@ -8,6 +8,7 @@ import { DRACOLoader } from "three/examples/jsm/loaders/DRACOLoader.js";
  * Base
  */
 // Debug
+const debugObject = {};
 const gui = new GUI({
   width: 400,
 });
