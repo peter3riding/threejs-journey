@@ -1,31 +1,56 @@
-import { OrbitControls } from '@react-three/drei'
-import { Perf } from 'r3f-perf'
+import { useGLTF, OrbitControls } from "@react-three/drei";
+import {
+  CylinderCollider,
+  BallCollider,
+  CuboidCollider,
+  RigidBody,
+  Physics,
+} from "@react-three/rapier";
+import { Perf } from "r3f-perf";
+import { useRef } from "react";
 
-export default function Experience()
-{
-    return <>
+export default function Experience() {
+  const cube = useRef();
+  const hamburger = useGLTF("./hamburger.glb");
+  const cubeJump = () => {
+    cube.current.applyImpulse({ x: 0, y: 5, z: 0 });
+    cube.current.applyTorqueImpulse({
+      x: Math.random() - 0.5,
+      y: Math.random() - 0.5,
+      z: Math.random() - 0.5,
+    });
+  };
+  return (
+    <>
+      <Perf position="top-left" />
 
-        <Perf position="top-left" />
+      <OrbitControls makeDefault />
 
-        <OrbitControls makeDefault />
+      <directionalLight castShadow position={[1, 2, 3]} intensity={4.5} />
+      <ambientLight intensity={1.5} />
 
-        <directionalLight castShadow position={ [ 1, 2, 3 ] } intensity={ 4.5 } />
-        <ambientLight intensity={ 1.5 } />
-
-        <mesh castShadow position={ [ - 2, 2, 0 ] }>
+      <Physics debug>
+        <RigidBody colliders="ball" position={[-1.5, 2, 0]}>
+          <mesh castShadow>
             <sphereGeometry />
             <meshStandardMaterial color="orange" />
-        </mesh>
+          </mesh>
+        </RigidBody>
 
-        <mesh castShadow position={ [ 2, 2, 0 ] }>
+        <RigidBody ref={cube} position={[1.5, 2, 0]}>
+          <mesh castShadow onClick={cubeJump}>
             <boxGeometry />
             <meshStandardMaterial color="mediumpurple" />
-        </mesh>
+          </mesh>
+        </RigidBody>
 
-        <mesh receiveShadow position-y={ - 1.25 }>
-            <boxGeometry args={ [ 10, 0.5, 10 ] } />
+        <RigidBody type="fixed" restitution={0} friction={0.7}>
+          <mesh receiveShadow position-y={-1.25}>
+            <boxGeometry args={[10, 0.5, 10]} />
             <meshStandardMaterial color="greenyellow" />
-        </mesh>
-
+          </mesh>
+        </RigidBody>
+      </Physics>
     </>
+  );
 }
